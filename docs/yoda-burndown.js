@@ -731,7 +731,11 @@ function burndown(issues) {
 		remainingIdealArray[burndownDateIndex] = 0;
 	} else {
 		// Burndown to second to last day
-		remainingIdealArray[remainingIdealArray.length - 1] = 0;
+		if (remainingIdealArray.length - 2 > 0) {
+			remainingIdealArray[remainingIdealArray.length - 2] = 0;
+		} else {
+			remainingIdealArray[remainingIdealArray.length - 1] = 0;
+		}
 	}
 
 
@@ -909,7 +913,7 @@ function updateMilestones(repoIndex) {
 			$('#milestonelist').append(newOption);
 		}
 		
-		if (milestonesSelected)
+		//if (milestonesSelected)
 			$('#milestonelist').trigger('change');
 		
 		firstMilestoneShow = false;
@@ -1237,11 +1241,83 @@ function copy_text(element) {
     // selection.removeAllRanges();
 }
 
+function issueRemainingUpdaterInternal(issues, issueIdx, todayString, finalFunc) {
+	if (issueIdx >= issues.length) {
+		finalFunc(issues);
+	} else {
+		[issueEstimate, issueRemaining] = yoda.getBodyEstimateAndRemainingEld(issues[issueIdx].body);
+		
+		var updateNeeded = false;
+		
+		if (issueEstimate != null && issueRemaining != null) {
+			// check if we need to include/update the total estimate on the issue's title
+			var res = issues[issueIdx].title.match(/^(.*)\[(\d[\d]*[\.]*[\d]*)\]\s*$/);
+			if (res != null) {
+				var prevEstimate = parseFloat(res[2]);
+				if (prevEstimate != issueEstimate) {
+					updateNeeded = true;
+					issues[issueIdx].title = res[1].trim() + ' [' + issueEstimate + ']';
+				}
+			} else {
+				updateNeeded = true;
+				issues[issueIdx].title = issues[issueIdx].title.trim() + ' [' + issueEstimate + ']';
+			}
+			
+			// look for the last '> remaining' entry
+			res = issues[issueIdx].body.match(/(> remaining\s+(\d{4}-\d{2}-\d{2})\s+(\d[\d]*[\.]*[\d]*))\s*$/);
+			if (res != null) {
+				// found an entry
+				var remainingEntryDateString = res[2];
+				var remainingEntryPoints = parseFloat(res[3]);
+
+				if (remainingEntryPoints != issueRemaining ) {
+					//  the remaining number of points has changed
+					updateNeeded = true;
+
+					if (remainingEntryDateString != todayString) {
+						// the last entry was already from today. Update it
+						issues[issueIdx].body = issues[issueIdx].body + '\n> remaining ' + todayString + ' ' + issueRemaining;
+					} else {
+						// the last entry was not from today. Add a new entry
+						issues[issueIdx].body = issues[issueIdx].body.substring(0, res.index) + '\> remaining ' + todayString + ' ' + issueRemaining;
+					}
+				}
+			} else {
+				// no entry found. Add a new entry
+				updateNeeded = true;
+				issues[issueIdx].body = issues[issueIdx].body + '\n\n> remaining ' + todayString + ' ' + issueRemaining;
+			}
+		} else {
+			yoda.showSnackbarError("Error calculating estimates for issue '" + issues[issueIdx].title + "'", 3000);
+		}
+		
+		if (updateNeeded) {
+			// update title and body only
+			var issueObj = {
+				title: issues[issueIdx].title,
+				body: issues[issueIdx].body
+			};
+			
+			yoda.editGitHubIssue($("#owner").val(), $("#repolist").val()[0], issues[issueIdx].number, issueObj, function(response) {issueRemainingUpdaterInternal(issues, issueIdx + 1, todayString, finalFunc);}, function(errorText) { yoda.showSnackbarError("Error editing issue: " + errorText, 3000);});
+		} else {
+			issueRemainingUpdaterInternal(issues, issueIdx + 1, todayString, finalFunc);
+		}
+	}
+	
+}
+
+function issueRemainingUpdater(issues) {
+	var today = new Date();
+	var todayString = yoda.formatDate(today);
+	
+	issueRemainingUpdaterInternal(issues, 0, todayString, burndown);
+}
+
 //-------------- START FUNCTIONS ---
 
 function startBurndown() {
 	console.log("Milestone based chart...");
-	yoda.updateGitHubIssuesRepos($("#owner").val(), $("#repolist").val(), "", "all", addMilestoneFilter, burndown, function(errorText) { yoda.showSnackbarError("Error getting issues: " + errorText, 3000);});
+	yoda.updateGitHubIssuesRepos($("#owner").val(), $("#repolist").val(), "", "all", addMilestoneFilter, issueRemainingUpdater, function(errorText) { yoda.showSnackbarError("Error getting issues: " + errorText, 3000);});
 }
 
 function startTable() {

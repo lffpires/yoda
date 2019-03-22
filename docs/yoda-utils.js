@@ -431,6 +431,48 @@ var yoda = (function() {
 			}
 		},
 		
+		// Extract estimate and remainig points from body using the Eldorado standards (summing task estimates)
+		// This function returns [estimate, remaining]
+		getBodyEstimateAndRemainingEld: function(body) {
+			// look for task groups
+			var res = body.match(/^[-\*].*\[[\d\.]+\](?:\r?\n(?!\r?\n).*)*/mg);
+			if (res != null) {
+				var estimate = 0;
+				var alreadyDone = 0;
+				for (var taskGroupIdx = 0; taskGroupIdx < res.length; taskGroupIdx++) {
+					var taskGroupText = res[taskGroupIdx];
+					var taskGroupEstimate = 0;
+					
+					// look for task group estimate
+					var res2 = taskGroupText.match(/[-\*].*\[(\d[\d]*[\.]*[\d]*)]\s*$/m);
+					if (res2 != null) {
+						taskGroupEstimate = parseFloat(res2[1]);
+						estimate += taskGroupEstimate;
+						
+						// look for tasks inside this task group
+						var res3 = taskGroupText.match(/^\s*[-\*] \[(x|X|\s*)\]/mg);
+						if (res3 != null) {
+							var totalTasks = res3.length;
+							
+							// we're considering all tasks in a group have the same size
+							var pointsPerTask = taskGroupEstimate / totalTasks;
+				
+							for (var taskIdx = 0; taskIdx < totalTasks; taskIdx++) {
+								// if the task is done, add its points to 'alreadyDone'
+								if (res3[taskIdx].match(/^\s*[-\*] \[(x|X)\]/g) != null) {
+									alreadyDone += pointsPerTask;
+								}
+							}
+						}
+					}
+				}
+
+				return [yoda.strip2Digits(estimate), yoda.strip2Digits(estimate - alreadyDone)];
+			} else {
+				return [null, null];
+			}
+		},
+		
 		// Get the milestone or project description filed without any annotations, ie. "> (keyworkd) (value)"
 		getPureDescription: function(description) {
 			res = removeFromBody(description, "^> startdate .*$");
@@ -492,6 +534,15 @@ var yoda = (function() {
 		issueEstimate: function (issue) {
 			switch (estimateInIssues) {
 			case "inbody": 
+				[issueEstimate, issueRemaining] = yoda.getBodyEstimateAndRemainingEld(issue.body);
+//				console.log(issue.number + ": " + issue_estimate);
+				if (issueEstimate == null) 
+					return 0;
+				else
+					return issueEstimate;
+				break;
+
+			case "inbody-old": 
 				var issueEstimate = yoda.getBodyEstimate(issue.body);
 //				console.log(issue.number + ": " + issue_estimate);
 				if (issueEstimate == null) 
@@ -538,7 +589,7 @@ var yoda = (function() {
 		
 		// Count number of completed tasks (lines in body starting with "- [x]" or "- [X]"
 		getbodyCompletedTasks: function(body) {
-			var res = body.match(/^- \[(x|X)\]/mg);
+			var res = body.match(/^\s*[-\*] \[(x|X)\]/mg);
 			if (res != null) {
 				return res.length;
 			} else {
@@ -549,7 +600,7 @@ var yoda = (function() {
 		// Retrieve # of tasks (including completed)
 		// Count number of tasks (lines in body starting with "- [x]" or "- [X]" or "- [ ]"
 		getbodyTasks: function(body) {
-			var res = body.match(/^- \[(x|X| )\]/mg);
+			var res = body.match(/^\s*[-\*] \[(x|X|\s*)\]/mg);
 			if (res != null) {
 				return res.length;
 			} else {
@@ -589,15 +640,15 @@ var yoda = (function() {
 			return info;
 		},
 		
-		// Format date as YYYY-MM-DD
+		// Format date as YYYY-MM-DD (UTC)
 		formatDate: function(date) {
-			var result = date.getFullYear() + "-";
-			if (date.getMonth() + 1 < 10)
+			var result = date.getUTCFullYear() + "-";
+			if (date.getUTCMonth() + 1 < 10)
 				result += "0";
-			result += (date.getMonth() + 1) + "-";
-			if (date.getDate() < 10)
+			result += (date.getUTCMonth() + 1) + "-";
+			if (date.getUTCDate() < 10)
 				result += "0";
-			result += (date.getDate());
+			result += (date.getUTCDate());
 			return result;
 		},
 		
@@ -909,6 +960,23 @@ var yoda = (function() {
 			}
 		},
 		
+		patchCall: function(url, data, finalFunc, errorFunc) {
+			$.ajax({
+				url: url,
+				data: JSON.stringify(data),
+				type: 'PATCH',
+				contentType: 'application/json',
+				success: function(response) {
+					finalFunc(response);
+				},
+				error: function(jqXHR, textStatus, errorThrown) { 
+					if (errorFunc != null) {
+						errorFunc(errorThrown + " " + jqXHR.status);
+					}
+				}
+			});
+		},
+		
 		// ----GITHUB REPO FUNCTIONS --------------------------------------
 		
 		// Functions to keep up-to-date list of repos based on owner.
@@ -1076,6 +1144,18 @@ var yoda = (function() {
 
 				if (okFunc != null)
 					okFunc(yoda_issues)
+			}, failFunc);
+		},
+		
+		// Generic function to edit an issue in GitHub.
+		editGitHubIssue: function (owner, repo, issueNumber, issue, okFunc, failFunc) {
+			var editIssueUrl = yoda.getGithubUrl() + "repos/" + owner + "/" + repo + "/issues/" + issueNumber;
+			
+			console.log("Edit Issue URL:" + editIssueUrl);
+			yoda.patchCall(editIssueUrl, issue, function(response) {
+				if (okFunc != null) {
+					okFunc();
+				}
 			}, failFunc);
 		},
 
