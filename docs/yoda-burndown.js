@@ -751,7 +751,7 @@ function burndown(issues) {
 				borderWidth : 2,
 				fill : false,
 				data : remainingArray,
-				backgroundColor : 'rgba(0,153,51,0.6)'  // Green 
+				backgroundColor : 'rgba(0,51,153,0.6)'  // Blue
 			},
 			{
 				type : 'line',
@@ -759,7 +759,7 @@ function burndown(issues) {
 				borderWidth : 2,
 				fill : false,
 				data : remainingIdealArray,
-				borderColor: '#004d1a',
+				borderColor: '#001a4d',
 				pointRadius: 0,
 				spanGaps: true
 			}]

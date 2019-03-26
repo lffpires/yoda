@@ -111,20 +111,19 @@ select, input, label, textarea {
  	overflow: hidden;
 	margin: 0 0 3px 0px;
 	padding: 3px;
-	background: #01a982;       /* HPE Green */ 
-/*	background: #00a3cc;  */   /* Nice blue */ 
+	background: #0182a9;
 }
 button {
 	margin: 10px;
   	padding: 10px 5px;
 	padding: 10px;
-	background-color: #adad85;
+	background-color: #4595ad;
 	color: white;
 }
 .tablebutton {
 	margin: 2px;
   	padding: 4px;
-	background-color: #adad85;
+	background-color: #4595ad;
 	color: white;
 }
 table {
@@ -145,7 +144,7 @@ tr:nth-child(even){background-color: #f2f2f2}
 thead {
     padding-top: 11px;
     padding-bottom: 11px;
-    background-color: #01a982;
+    background-color: #0182a9;
     color: white;
 }
 
@@ -175,7 +174,7 @@ thead {
 }
 .labelframe {
 	float: left;
-	border: 2px dashed green;
+	border: 2px dashed blue;
 	margin: 5px 5px;
 	padding: 5px 5px; 
   	width: 620px;
@@ -197,7 +196,7 @@ thead {
     visibility: hidden;
     min-width: 250px;
     margin-left: -125px;
-    background-color: #01a982;
+    background-color: #0182a9;
     color: #fff;
     text-align: center;
     border-radius: 2px;
@@ -281,7 +280,7 @@ thead {
 }
 .dropdown-content a:hover {
 	color: white; 
-	background-color: #01a982;
+	background-color: #0182a9;
 }
 .show {
 	display:block;
