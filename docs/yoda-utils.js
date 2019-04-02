@@ -193,8 +193,7 @@ var yoda = (function() {
 	// Interface functions
 	return {
 		strip2Digits: function(number) {
-			places = 2;
-			return +(Math.round(number + "e+" + places)  + "e-" + places);
+			return (Math.round(number * 100) / 100);
 		},
 		
 		// A mix of nice bar colors for bar charts. 
@@ -435,7 +434,7 @@ var yoda = (function() {
 		// This function returns [estimate, remaining]
 		getBodyEstimateAndRemainingEld: function(body) {
 			// look for task groups
-			var res = body.match(/^[-\*].*\[[\d\.]+\](?:\r?\n(?!\r?\n).*)*/mg);
+			var res = body.match(/^[-\*].*\[[\d\.]+\][^\r\n]*(?:\r?\n(?!\r?\n).*)*/mg);
 			if (res != null) {
 				var estimate = 0;
 				var alreadyDone = 0;
@@ -467,7 +466,8 @@ var yoda = (function() {
 					}
 				}
 
-				return [yoda.strip2Digits(estimate), yoda.strip2Digits(estimate - alreadyDone)];
+				var remaining = estimate - alreadyDone;
+				return [yoda.strip2Digits(estimate), yoda.strip2Digits(remaining)];
 			} else {
 				return [null, null];
 			}
@@ -485,7 +485,7 @@ var yoda = (function() {
 		// Extract "> remaining (date) (value)" entries.
 		// Should be run in a loop with index = 0 first.  
 		getFirstRemaining: function(body, index) {
-			var remaining = getBodyField(body, '^> remaining ', '[ ]*2[0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9][ ][0-9][0-9]*(\.[0-9])?[ ]*$', index);
+			var remaining = getBodyField(body, '^> remaining ', '[ ]*2[0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9][ ][0-9][0-9]*(\.[0-9]+)?[ ]*$', index);
 			return remaining;
 		},
 		
