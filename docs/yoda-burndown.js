@@ -528,6 +528,10 @@ function makeTable(issues) {
 	yoda.updateUrl(getUrlParams() + "&draw=table");
 }
 
+function isWorkDay(date) {
+	var result = date.getDay() < 5;
+	return result;
+}
 
 // ---------------------------------------
 // Milestone issues have been retrieved. Time to analyse data and draw the chart.
@@ -615,6 +619,18 @@ function burndown(issues) {
 	// HACK1: We are running on purpose one day extra, in order to show the effects of burndown on the last day.
 	// HACK2: In the end we will push the labels one day to the right, thus causing burndown to take effort ON the day (before it was after).
 	console.log(milestoneStartdate);
+
+	// count work days
+	var workDays = 0;
+	var dateTmp = new Date(date);
+	for (; dateTmp < dueDate; dateTmp.setDate(dateTmp.getDate() + 1)) {
+		if (isWorkDay(dateTmp)) {
+			workDays++;
+		}
+	}
+	var pointDeltaPerWorkDay = estimate / (workDays - 1);
+	var remainingWorkDayPoints = estimate;
+
 	for (; date <= dueDate; date.setDate(date.getDate() + 1)) {
 		console.log("Date: " + date);
 		nextDay.setDate(date.getDate() + 1);
@@ -627,7 +643,15 @@ function burndown(issues) {
 			burndownDateIndex = labels.length; 
 
 		labels.push(dateString);
-		remainingIdealArray.push(NaN);
+		if (remainingWorkDayPoints < 0) {
+			remainingIdealArray.push(NaN);
+		} else {
+			remainingIdealArray.push(remainingWorkDayPoints);
+		}
+
+		if (isWorkDay(date)) {
+			remainingWorkDayPoints -= pointDeltaPerWorkDay;
+		}
 
 		// Make bar for day, but not if later than current date!
 		// BUT, we must have at least one entry if looking at a future sprint!
@@ -825,6 +849,11 @@ function burndown(issues) {
 			tooltips: {
 				enabled: false
 			},
+			elements: {
+				line: {
+					tension: 0 // disable bezier curves
+				}
+			}
 		},
 	});
 	
