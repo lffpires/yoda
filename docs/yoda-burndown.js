@@ -528,9 +528,12 @@ function makeTable(issues) {
 	yoda.updateUrl(getUrlParams() + "&draw=table");
 }
 
-function isWorkDay(date) {
-	var result = date.getDay() < 5;
-	return result;
+function isWorkDay(date, nonWorkDays) {
+	if (nonWorkDays.includes(yoda.formatDate(date)) || date.getDay() >= 5) {
+		return false;
+	} else {
+		return true;
+	}
 }
 
 // ---------------------------------------
@@ -542,6 +545,8 @@ function burndown(issues) {
 	yoda.filterPullRequests(issues);
 	console.log("Creating burndown. No issues (after filtering out pull requests): " + issues.length);
 	
+	var nonWorkDays = $("#non_work_days").val();
+
 	var tentativeLabel = $("#tentative").val();
 
 	// 3 arrays we will create. 
@@ -624,7 +629,7 @@ function burndown(issues) {
 	var workDays = 0;
 	var dateTmp = new Date(date);
 	for (; dateTmp < dueDate; dateTmp.setDate(dateTmp.getDate() + 1)) {
-		if (isWorkDay(dateTmp)) {
+		if (isWorkDay(dateTmp, nonWorkDays)) {
 			workDays++;
 		}
 	}
@@ -649,7 +654,7 @@ function burndown(issues) {
 			remainingIdealArray.push(remainingWorkDayPoints);
 		}
 
-		if (isWorkDay(date)) {
+		if (isWorkDay(date, nonWorkDays)) {
 			remainingWorkDayPoints -= pointDeltaPerWorkDay;
 		}
 
@@ -1020,6 +1025,13 @@ function showMilestoneData() {
 				if (capacity != null) {
 					console.log("Adding capacity " + capacity + " from repo " + repoList[r]);
 					totalCapacity += parseInt(capacity);
+				}
+
+				var nonWorkDays = yoda.getMilestoneNonWorkDays(milestone.description);
+				if (nonWorkDays != null) {
+					$("#non_work_days").val(nonWorkDays);
+				} else {
+					$("#non_work_days").val("");
 				}
 			}
 		}

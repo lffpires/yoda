@@ -640,6 +640,10 @@ var yoda = (function() {
 			return info;
 		},
 		
+		getMilestoneNonWorkDays: function(description) {
+			return getBodyField(description, '> nonworkdays ', '[^\r\n]+');
+		},
+
 		// Format date as YYYY-MM-DD (UTC)
 		formatDate: function(date) {
 			var result = date.getUTCFullYear() + "-";
