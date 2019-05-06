@@ -555,6 +555,8 @@ function burndown(issues) {
 	// Remaining array are values for the bar chart. 
 	var remainingArray = [];
 	var remainingTentativeArray = [];
+	var barColorArray = [];
+	barColorArray.push('rgba(0,51,153,0.6)');
 	
 	// Data for the ideal line. This will actually only hold initial and final value, rest will be NaN.
 	// Tool will draw a straight line between these two points.
@@ -664,10 +666,16 @@ function burndown(issues) {
 			console.log("Adding bar value for: " + dateString + ", value: " + remaining);
 			remainingArray.push(yoda.strip2Digits(remaining));
 			remainingTentativeArray.push(yoda.strip2Digits(remainingTentative));
+			if (isWorkDay(date, nonWorkDays)) {
+				barColorArray.push('rgba(0,51,153,0.6)');
+			} else {
+				barColorArray.push('rgba(223,223,223,0.6)');
+			}
 		} else {
 			console.log("Skipping bar as in future: " + dateString);
 			remainingArray.push(NaN);
 			remainingTentativeArray.push(NaN);
+			barColorArray.push('rgba(0,51,153,0.6)');
 		}
 
 		// Now check which (if any) issues where closed during this day. Decrease remaining.
@@ -780,7 +788,7 @@ function burndown(issues) {
 				borderWidth : 2,
 				fill : false,
 				data : remainingArray,
-				backgroundColor : 'rgba(0,51,153,0.6)'  // Blue
+				backgroundColor : barColorArray
 			},
 			{
 				type : 'line',
